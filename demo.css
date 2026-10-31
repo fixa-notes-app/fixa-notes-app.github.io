@@ -238,33 +238,46 @@
 .fx-doc ol { counter-reset: fx-n; }
 .fx-doc ol > li { counter-increment: fx-n; }
 .fx-doc ol > li::before { content: counter(fx-n) "."; position: absolute; left: -22px; font-weight: 400; }
-.fx-doc .fx-check > li { margin: 0 0 4px; }
+/* Checklist jako MarkerLayoutManager: kolečko o průměru 1,8× výšky velkých písmen (14 b. → 18), střed 13,5 b.
+   od začátku řádku (6 b. odsazení + půlka fajfky) a v půlce velkých písmen nad účařím (y 15 − 4,9).
+   Nehotová = obrys 1,3 b. v sekundární barvě, hotová = plné kolečko v akcentu s bílou fajfkou o velikosti
+   1,5× výšky velkých písmen. Text hotové položky je ztlumený na 42 % a přeškrtnutý. */
 .fx-doc .fx-check > li::before {
     content: "";
     position: absolute;
-    left: -24px;
-    top: 1px;
-    width: 18px;
-    height: 18px;
+    left: -23.4px;
+    top: 1.17px;
+    width: 17.8px;
+    height: 17.8px;
     box-sizing: border-box;
     border-radius: 50%;
-    border: 1.5px solid var(--fx-label-2);
+    border: 1.3px solid var(--fx-label-2);
     cursor: pointer;
 }
-.fx-doc .fx-check > li.done { color: var(--fx-label-2); text-decoration: line-through; text-decoration-color: var(--fx-label-2); }
-.fx-doc .fx-check > li.done::before { border: 0; background: var(--fx-accent); }
+.fx-doc .fx-check > li.done::before {
+    left: -22.75px;
+    top: 1.82px;
+    width: 16.5px;
+    height: 16.5px;
+    border: 0;
+    background: var(--fx-accent);
+}
 .fx-doc .fx-check > li.done::after {
     content: "";
     position: absolute;
-    left: -18.8px;
-    top: 5.2px;
-    width: 4.2px;
-    height: 7.4px;
-    border: solid #fff;
-    border-width: 0 2px 2px 0;
-    transform: rotate(42deg);
+    left: -23.5px;
+    top: 1.07px;
+    width: 18px;
+    height: 18px;
     pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M5.85 9.3 8.1 11.55 12.3 6.75' fill='none' stroke='white' stroke-width='1.65' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 18px 18px no-repeat;
 }
+.fx-doc .fx-check > li.done {
+    color: color-mix(in srgb, var(--fx-label) 42%, transparent);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+}
+.fx-doc .fx-check > li.done a { color: color-mix(in srgb, var(--fx-accent) 42%, transparent); }
 .fx-doc s, .fx-doc strike { text-decoration: line-through; }
 .fx-doc figure { position: relative; width: fit-content; max-width: 100%; margin: 6px 0; cursor: default; }
 .fx-doc figure img { display: block; max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08); }
