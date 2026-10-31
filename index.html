@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-project="lavender">
+<html lang="en" data-project="blue">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,6 +16,7 @@
     <link rel="icon" type="image/png" href="images/icon.png">
     <link rel="apple-touch-icon" href="images/icon.png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="demo.css">
 </head>
 <body>
 <div class="blobs" aria-hidden="true"></div>
@@ -33,9 +34,8 @@
 </header>
 
 <main id="top">
-    <section class="hero" data-project="lavender">
+    <section class="hero" data-project="blue">
         <div class="wrap">
-            <p class="eyebrow">Notes for Mac</p>
             <h1>Every note in its place.</h1>
             <p class="lead">Fixa is a calm, fast notes app for your Mac. Every note lives in a project, and the whole window takes on that project’s color – so you always know where you are.</p>
             <div class="actions">
@@ -46,7 +46,21 @@
                 <a class="button glass" href="#install">How to install</a>
             </div>
             <p class="meta">Version 0.6 · macOS 26 Tahoe or later · Apple silicon and Intel · Free</p>
-            <img class="shot" src="images/window.png" width="2360" height="1480" alt="Fixa window: projects on the left, notes in the middle, the editor on the right">
+            <!-- Živé okno Fixy (demo.js); bez JavaScriptu snímek okna. -->
+            <div class="fx" id="fixa-demo" aria-label="Try Fixa right here">
+                <noscript><img class="shot" src="images/window.png" width="2360" height="1480" alt="Fixa window: projects on the left, notes in the middle, the editor on the right"></noscript>
+            </div>
+            <div class="fx-keys">
+                <span class="lead-in">Try it right here – click the window, then</span>
+                <span><kbd>⌘</kbd><kbd>D</kbd><b>next project</b></span>
+                <span><kbd>⇧</kbd><kbd>⌘</kbd><kbd>D</kbd><b>previous</b></span>
+                <span><kbd>⌘</kbd><kbd>S</kbd><b>hide projects</b></span>
+                <span><kbd>↑</kbd><kbd>↓</kbd><b>browse notes</b></span>
+                <span><kbd>↩</kbd><b>write</b></span>
+                <span><kbd>esc</kbd><b>back to the list</b></span>
+                <span class="fx-touch">Try it right here – tap a project, open a note and write.</span>
+            </div>
+            <p class="fx-hint">Everything stays in this browser on this device: your changes are still here after a reload, and nothing is sent anywhere. <button type="button" id="fixa-demo-reset">Reset the demo</button></p>
         </div>
     </section>
 
@@ -198,12 +212,21 @@
     // Stránka se přebarvuje podle sekce uprostřed obrazovky – jako okno Fixy při přepnutí projektu.
     const sections = [...document.querySelectorAll("section[data-project]")];
     const root = document.documentElement;
+    let active = null;
     const observer = new IntersectionObserver((entries) => {
         for (const entry of entries) {
-            if (entry.isIntersecting) root.dataset.project = entry.target.dataset.project;
+            if (entry.isIntersecting) {
+                active = entry.target;
+                root.dataset.project = active.dataset.project;
+            }
         }
     }, { rootMargin: "-45% 0px -45% 0px" });
     sections.forEach((section) => observer.observe(section));
+    // Úvod se barví podle projektu v živém okně Fixy (demo.js volá tohle po přepnutí projektu).
+    window.fixaPageTheme = () => {
+        if (active) root.dataset.project = active.dataset.project;
+    };
 </script>
+<script src="demo.js" defer></script>
 </body>
 </html>

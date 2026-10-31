@@ -1,0 +1,593 @@
+/* Živé okno Fixy v úvodu webu (demo.js). Rozměry jako v aplikaci (1 bod = 1 px): panel projektů, seznam
+   poznámek a editor; barvy okna nastavuje demo.js z barvy projektu (ProjectTheme) a mění se plynule. */
+
+@property --fx-canvas { syntax: '<color>'; inherits: true; initial-value: #D8E4F5; }
+@property --fx-paper { syntax: '<color>'; inherits: true; initial-value: #F3F7FD; }
+@property --fx-sel { syntax: '<color>'; inherits: true; initial-value: #C2D6F2; }
+@property --fx-accent { syntax: '<color>'; inherits: true; initial-value: #2765B8; }
+
+.fx {
+    --fx-label: rgba(0, 0, 0, 0.85);
+    --fx-label-2: rgba(0, 0, 0, 0.5);
+    --fx-label-3: rgba(0, 0, 0, 0.3);
+    --fx-sep: rgba(0, 0, 0, 0.09);
+    --fx-side: rgba(255, 255, 255, 0.26);
+    --fx-glass: rgba(255, 255, 255, 0.4);
+    --fx-glass-edge: rgba(255, 255, 255, 0.8);
+    --fx-glass-line: rgba(0, 0, 0, 0.08);
+    --fx-glass-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --fx-head: rgba(242, 243, 246, 0.82);
+    --fx-hl: 0.5;
+    --fx-doc-top: 120px;
+    --fx-head-height: 108px;
+    --fx-scheme: light;
+    container: fx / inline-size;
+    position: relative;
+    margin-top: 48px;
+    text-align: left;
+    font: 13px/normal -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    color: var(--fx-label);
+    -webkit-font-smoothing: antialiased;
+    transition: --fx-canvas 0.6s ease, --fx-paper 0.6s ease, --fx-sel 0.6s ease, --fx-accent 0.6s ease;
+}
+@media (prefers-color-scheme: dark) {
+    .fx {
+        --fx-label: rgba(255, 255, 255, 0.88);
+        --fx-label-2: rgba(255, 255, 255, 0.55);
+        --fx-label-3: rgba(255, 255, 255, 0.28);
+        --fx-sep: rgba(255, 255, 255, 0.09);
+        --fx-side: rgba(255, 255, 255, 0.03);
+        --fx-glass: rgba(255, 255, 255, 0.07);
+        --fx-glass-edge: rgba(255, 255, 255, 0.1);
+        --fx-glass-line: rgba(0, 0, 0, 0.3);
+        --fx-glass-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        --fx-head: rgba(44, 44, 48, 0.8);
+        --fx-hl: 0.42;
+        --fx-scheme: dark;
+    }
+}
+
+:where(.fx) button {
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    margin: 0;
+    border: 0;
+    background: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.fx button:focus-visible { outline: 2px solid var(--fx-accent); outline-offset: 1px; }
+
+.fx-window {
+    position: relative;
+    display: grid;
+    grid-template-columns: clamp(200px, 22.3%, 250px) clamp(230px, 26%, 290px) minmax(0, 1fr);
+    height: 720px;
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--fx-canvas);
+    box-shadow: 0 40px 90px -40px rgba(30, 28, 80, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    transition: grid-template-columns 0.35s ease;
+}
+.fx.no-side .fx-window { grid-template-columns: 0 clamp(230px, 26%, 290px) minmax(0, 1fr); }
+
+.fx-top { flex: none; height: 52px; display: flex; align-items: center; gap: 8px; }
+.fx-lights { display: flex; gap: 8px; padding-left: 4px; }
+.fx-lights i { width: 14px; height: 14px; border-radius: 50%; background: #FF5F57; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12); }
+.fx-lights i:nth-child(2) { background: #FEBC2E; }
+.fx-lights i:nth-child(3) { background: #28C840; }
+
+/* Kulatá skleněná tlačítka (panel, nová poznámka, ?, Nastavení) */
+.fx-round {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--fx-label-2) !important;
+    background: var(--fx-glass) !important;
+    box-shadow: inset 0 0 0 1px var(--fx-glass-edge), 0 0 0 0.5px var(--fx-glass-line), var(--fx-glass-shadow);
+    cursor: pointer;
+}
+.fx-round svg { width: 19px; height: 19px; }
+.fx-round.small { width: 30px; height: 30px; font-size: 12px; font-weight: 500; }
+.fx-round.small svg { width: 15px; height: 15px; }
+
+/* Panel projektů */
+.fx-side {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--fx-side);
+    user-select: none;
+    -webkit-user-select: none;
+}
+.fx-side .fx-top { padding: 0 8px 0 14px; justify-content: space-between; }
+.fx-tiles { display: flex; flex-direction: column; gap: 8px; padding: 6px 10px; overflow-y: auto; }
+.fx-tile, .fx-new-project {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    height: 58px;
+    padding: 0 11px;
+    border-radius: 16px;
+    text-align: left;
+    background: var(--fx-glass) !important;
+    box-shadow: inset 0 0 0 1px var(--fx-glass-edge), 0 0 0 0.5px var(--fx-glass-line), var(--fx-glass-shadow);
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.3s ease;
+}
+.fx-tile:active, .fx-new-project:active { transform: scale(0.98); }
+.fx-tile.selected {
+    background: color-mix(in srgb, var(--tc) 38%, rgba(150, 156, 168, 0.32)) !important;
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, color-mix(in srgb, var(--tc) 75%, #000) 70%, transparent), var(--fx-glass-shadow);
+}
+.fx-badge {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 10.8px;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    line-height: 1;
+    background: linear-gradient(color-mix(in srgb, var(--tc) 82%, #fff), var(--tc));
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+.fx-tile-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 17px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.fx-tile-count { font: 600 13px ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif; font-variant-numeric: tabular-nums; color: var(--fx-label-2); }
+.fx-new-project { height: 44px; justify-content: center; gap: 8px; color: var(--fx-label-2) !important; font-size: 13px; font-weight: 500; }
+.fx-new-project svg { width: 16px; height: 16px; }
+.fx-side-bottom { margin-top: auto; display: flex; gap: 8px; padding: 6px 12px 12px; }
+
+/* Seznam poznámek */
+.fx-list {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.fx-list .fx-top { padding: 0 8px; }
+.fx-list .fx-lights, .fx-list .fx-show-side { display: none; }
+.fx.no-side .fx-list .fx-lights, .fx.no-side .fx-list .fx-show-side { display: flex; }
+.fx.no-side .fx-list .fx-top { padding-left: 14px; }
+.fx.no-side .fx-list .fx-show-side { display: grid; margin-left: 10px; }
+.fx-list-scroll { flex: 1; overflow-y: auto; padding: 0 10px 12px; outline: none; }
+.fx-list-head { display: flex; align-items: center; gap: 12px; height: 42px; margin: 6px 6px 14px; }
+.fx-list-head .fx-badge { width: 42px; height: 42px; border-radius: 12.6px; font-size: 23.5px; }
+.fx-list-head b { display: block; font-size: 21px; font-weight: 700; line-height: 25px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-list-head small { display: block; font-size: 12px; color: var(--fx-label-2); margin-top: 1px; }
+.fx-list-head > span { min-width: 0; }
+.fx-section { display: flex; align-items: flex-start; gap: 5px; height: 17px; padding: 0 12px; font-size: 11px; font-weight: 600; color: var(--fx-label-2); }
+.fx-section svg { width: 10px; height: 13px; flex: none; color: var(--fx-label-3); }
+.fx-section.pinned svg { color: var(--fx-accent); }
+.fx-section + .fx-row { margin-top: 0; }
+.fx-section.notes { margin-top: 12px; }
+.fx-rows { display: flex; flex-direction: column; gap: 2px; }
+.fx-row {
+    display: block;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 11px;
+    text-align: left;
+    cursor: pointer;
+}
+.fx-row:hover { background: color-mix(in srgb, var(--fx-sel) 45%, transparent) !important; }
+.fx-row.selected { background: var(--fx-sel) !important; }
+.fx-row-title { display: block; font-size: 13px; font-weight: 600; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-row-sub { display: flex; gap: 6px; margin-top: 3px; font-size: 12px; line-height: 15px; white-space: nowrap; }
+.fx-row-prev { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--fx-label-2); }
+
+/* Editor */
+.fx-editor {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    background: var(--fx-paper);
+    box-shadow: -1px 0 0 var(--fx-sep);
+}
+.fx-scroll { position: absolute; inset: 0 0 30px; overflow-y: auto; overscroll-behavior: contain; }
+.fx-doc {
+    min-height: 100%;
+    padding: var(--fx-doc-top) 32px 40px;
+    outline: none;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--fx-label);
+    caret-color: var(--fx-accent);
+    overflow-wrap: break-word;
+}
+.fx-doc ::selection { background: color-mix(in srgb, var(--fx-paper) 70%, var(--fx-accent)); }
+.fx-doc > * { margin: 0; }
+.fx-doc p, .fx-doc > div:not(.fx-card) { margin: 0 0 3px; }
+.fx-doc h1, .fx-doc h2, .fx-doc h3 { max-width: none; letter-spacing: normal; color: inherit; }
+.fx-doc h1 { font-size: 26px; line-height: 31px; font-weight: 700; margin: 4px 0 6px; }
+.fx-doc h2 { font-size: 20px; line-height: 24px; font-weight: 700; margin: 10px 0 4px; }
+.fx-doc h3 { font-size: 17px; line-height: 21px; font-weight: 600; margin: 8px 0 2px; }
+.fx-doc > :first-child { margin-top: 0; }
+.fx-doc b, .fx-doc strong { font-weight: 700; }
+.fx-doc u { text-decoration: underline; text-underline-offset: 2px; }
+.fx-doc a { color: var(--fx-accent); text-decoration: underline; text-underline-offset: 2px; }
+.fx-doc ul, .fx-doc ol { list-style: none; padding: 0 0 0 28px; margin: 0 0 3px; }
+.fx-doc li { position: relative; margin: 0 0 2px; }
+.fx-doc ul:not(.fx-check) > li::before {
+    content: "";
+    position: absolute;
+    left: -21.5px;
+    top: 9px;
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.fx-doc ol { counter-reset: fx-n; }
+.fx-doc ol > li { counter-increment: fx-n; }
+.fx-doc ol > li::before { content: counter(fx-n) "."; position: absolute; left: -22px; font-weight: 400; }
+.fx-doc .fx-check > li { margin: 0 0 4px; }
+.fx-doc .fx-check > li::before {
+    content: "";
+    position: absolute;
+    left: -24px;
+    top: 1px;
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 1.5px solid var(--fx-label-2);
+    cursor: pointer;
+}
+.fx-doc .fx-check > li.done { color: var(--fx-label-2); text-decoration: line-through; text-decoration-color: var(--fx-label-2); }
+.fx-doc .fx-check > li.done::before { border: 0; background: var(--fx-accent); }
+.fx-doc .fx-check > li.done::after {
+    content: "";
+    position: absolute;
+    left: -18.8px;
+    top: 5.2px;
+    width: 4.2px;
+    height: 7.4px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(42deg);
+    pointer-events: none;
+}
+.fx-doc s, .fx-doc strike { text-decoration: line-through; }
+.fx-doc figure { position: relative; width: fit-content; max-width: 100%; margin: 6px 0; cursor: default; }
+.fx-doc figure img { display: block; max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08); }
+/* Vybraný obrázek: rámeček v barvě projektu, jemné podbarvení a úchyt vpravo dole (FixaTextView.draw). */
+.fx-doc figure.fx-selected { touch-action: none; }
+.fx-doc figure.fx-selected img { outline: 2.5px solid var(--fx-accent); outline-offset: 1.5px; }
+.fx-doc figure.fx-selected::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--fx-accent) 20%, transparent);
+    pointer-events: none;
+}
+.fx-doc figure.fx-selected::after {
+    content: "";
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--fx-accent);
+}
+.fx-doc figure.fx-on-handle { cursor: nwse-resize; }
+.fx-doc figure.fx-moving { opacity: 0.35; }
+/* Kam se přetahovaný obrázek vloží – kolečko a čára v akcentu (jako u dlaždic a checklistu). */
+.fx-drop-line { position: absolute; z-index: 1; height: 7px; pointer-events: none; }
+.fx-drop-line::before { content: ""; position: absolute; left: 0; top: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--fx-accent); }
+.fx-drop-line::after { content: ""; position: absolute; left: 6px; right: 0; top: 2.25px; height: 2.5px; border-radius: 2px; background: var(--fx-accent); }
+.fx-doc figure + * { margin-top: 0; }
+
+/* Fixa (zvýrazňovač): nižší pruh se šikmými konci, každý řádek zvlášť – jako MarkerLayoutManager. */
+.fx-doc mark {
+    --c: 255 219 46;
+    color: inherit;
+    padding: 0 3px;
+    margin: 0 -3px;
+    background:
+        linear-gradient(to bottom right, transparent 48%, rgb(var(--c) / var(--fx-hl)) 52%) left / 4px 100% no-repeat,
+        linear-gradient(to top left, transparent 48%, rgb(var(--c) / var(--fx-hl)) 52%) right / 4px 100% no-repeat,
+        linear-gradient(rgb(var(--c) / var(--fx-hl)), rgb(var(--c) / var(--fx-hl))) center / calc(100% - 8px) 100% no-repeat;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+.fx-doc mark[data-c="green"] { --c: 107 222 107; }
+.fx-doc mark[data-c="pink"] { --c: 255 128 201; }
+.fx-doc mark[data-c="blue"] { --c: 102 186 255; }
+.fx-doc mark[data-c="orange"] { --c: 255 163 64; }
+
+/* Karta odkazu */
+.fx-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 440px;
+    height: 60px;
+    margin: 6px 0;
+    padding: 0 14px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--fx-paper) 92%, var(--fx-label));
+    box-shadow: inset 0 0 0 1px var(--fx-sep);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.fx-card-icon {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font: 700 17px Georgia, "Times New Roman", serif;
+    background: #fff;
+    color: #111;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+.fx-card-icon.dark { background: #111; color: #fff; font-family: inherit; }
+.fx-card-icon.stripe { background: #635BFF; color: #fff; font-family: inherit; }
+.fx-card-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fx-card-title { font-size: 13px; font-weight: 600; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-card-host { font-size: 12px; line-height: 15px; color: var(--fx-label-2); }
+
+/* Hlavička editoru se skleněným pozadím a lištou formátování */
+.fx-head {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    height: var(--fx-head-height);
+    padding: 7px 22px 0;
+    background: var(--fx-head);
+    backdrop-filter: blur(18px) saturate(1.6);
+    -webkit-backdrop-filter: blur(18px) saturate(1.6);
+    box-shadow: 0 1px 0 var(--fx-sep);
+    user-select: none;
+    -webkit-user-select: none;
+}
+.fx-bar-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.fx-bar-row:empty { display: none; }
+.fx-bar-row + .fx-bar-row { margin-top: 8px; }
+.fx-grp {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--fx-glass);
+    box-shadow: inset 0 0 0 1px var(--fx-glass-edge), 0 0 0 0.5px var(--fx-glass-line), var(--fx-glass-shadow);
+}
+.fx-btn {
+    height: 30px;
+    min-width: 34px;
+    padding: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.fx-btn svg { width: 17px; height: 17px; }
+.fx-btn:active { opacity: 0.5; }
+.fx-btn.on { background: color-mix(in srgb, var(--fx-accent) 16%, transparent) !important; color: var(--fx-accent) !important; }
+.fx-btn.letter { font-size: 15px; font-weight: 700; }
+.fx-btn.letter.u { text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
+.fx-btn.letter.s { text-decoration: line-through; font-weight: 600; }
+.fx-divider { width: 1px; height: 18px; margin: 0 4px; background: var(--fx-sep); }
+.fx-btn.fx-style { padding: 0 11px; }
+.fx-style[data-style="title"] { font-size: 15px; font-weight: 700; }
+.fx-style[data-style="heading"] { font-size: 14px; font-weight: 700; }
+.fx-style[data-style="subheading"] { font-size: 13px; font-weight: 600; }
+.fx-style[data-style="body"] { font-size: 13px; font-weight: 400; }
+.fx-menu-btn { padding: 0 11px; gap: 6px; }
+.fx-menu-btn svg { width: 9px; height: 9px; }
+.fx-menu-names { display: grid; }
+.fx-menu-names > * { grid-area: 1 / 1; visibility: hidden; }
+.fx-menu-names > .current { visibility: visible; }
+.fx-marker-icon { display: inline-grid; place-items: center; width: 22px; padding-left: 4px; color: var(--fx-label-2); }
+.fx-marker-icon svg { width: 16px; height: 16px; }
+.fx-dot { width: 28px; height: 28px; min-width: 0; }
+.fx-dot i { width: 20px; height: 20px; border-radius: 50%; background: var(--dot); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12); }
+.fx-dot.on i { box-shadow: 0 0 0 2px var(--fx-paper), 0 0 0 4px color-mix(in srgb, var(--fx-label) 55%, transparent); }
+.fx-eraser { width: 30px; min-width: 30px; }
+.fx-wide { padding: 0 12px; font-size: 13px; font-weight: 500; }
+.fx-wide svg { width: 16px; height: 16px; }
+
+/* Menu stylů a okénko odkazu */
+.fx-pop {
+    position: absolute;
+    z-index: 5;
+    min-width: 180px;
+    padding: 5px;
+    border-radius: 12px;
+    background: var(--fx-paper);
+    box-shadow: 0 0 0 0.5px var(--fx-glass-line), 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.fx-pop[hidden] { display: none; }
+.fx-pop .fx-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 28px;
+    padding: 0 10px 0 8px;
+    border-radius: 7px;
+    text-align: left;
+    cursor: pointer;
+}
+.fx-pop .fx-option:hover { background: var(--fx-accent) !important; color: #fff !important; }
+.fx-option .check { width: 12px; font-size: 12px; }
+.fx-link-pop { width: 280px; padding: 12px; }
+.fx-link-pop b { display: block; font-size: 13px; margin-bottom: 8px; }
+.fx-link-pop input {
+    width: 100%;
+    box-sizing: border-box;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 7px;
+    border: 1px solid var(--fx-sep);
+    background: var(--fx-paper);
+    color: var(--fx-label);
+    font: inherit;
+    outline: none;
+}
+.fx-link-pop input:focus { border-color: var(--fx-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fx-accent) 25%, transparent); }
+.fx-link-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.fx-link-actions button { height: 26px; padding: 0 12px; border-radius: 999px; cursor: pointer; background: var(--fx-glass) !important; box-shadow: inset 0 0 0 1px var(--fx-glass-edge), 0 0 0 0.5px var(--fx-glass-line); }
+.fx-link-actions .primary { background: var(--fx-accent) !important; color: #fff !important; box-shadow: none; }
+
+/* Datum vytvoření a úpravy – nenápadně vlevo dole */
+.fx-foot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30px;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    font-size: 10px;
+    color: var(--fx-label-3);
+    background: var(--fx-paper);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Krátká zpráva dole uprostřed okna */
+.fx-toast {
+    position: absolute;
+    z-index: 6;
+    left: 50%;
+    bottom: 22px;
+    max-width: calc(100% - 32px);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    background: color-mix(in srgb, var(--fx-paper) 88%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 0 0 0.5px var(--fx-glass-line), 0 10px 30px rgba(0, 0, 0, 0.16);
+    transform: translate(-50%, 12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.fx-toast.shown { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.fx-toast a { color: var(--fx-accent); font-weight: 600; }
+
+/* Pod oknem: zkratky k vyzkoušení (klávesy jako KeyCap v přehledu zkratek) a jak demo ukládá. */
+.fx-keys { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 18px; margin: 20px 0 0; font-size: 13px; color: var(--ink-2); }
+.fx-keys > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.fx-keys > span > b { font-weight: 400; margin-left: 5px; }
+.fx-keys .lead-in { color: var(--ink-3); }
+.fx-keys kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    box-sizing: border-box;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 6px;
+    font: 600 12px/1 ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.22), inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+}
+.fx-keys > .fx-touch { display: none; }
+/* Na dotykovém zařízení bez klávesnice místo zkratek jen věta. */
+@media (hover: none) {
+    .fx-keys > span { display: none; }
+    .fx-keys > .fx-touch { display: inline; white-space: normal; }
+}
+.fx-hint { margin: 10px 0 0; font-size: 12px; color: var(--ink-3); }
+.fx-hint button {
+    font: inherit;
+    color: inherit;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+.fx-hint button:hover { color: var(--ink-2); }
+
+/* Užší okno: panel projektů jen s odznaky */
+@container fx (max-width: 900px) {
+    .fx-window { grid-template-columns: 72px clamp(220px, 30%, 260px) minmax(0, 1fr); }
+    .fx.no-side .fx-window { grid-template-columns: 0 clamp(220px, 30%, 260px) minmax(0, 1fr); }
+    .fx-side .fx-top { justify-content: center; padding: 0; }
+    .fx-side .fx-top .fx-round { display: none; }
+    .fx-lights { gap: 6px; padding: 0; }
+    .fx-lights i { width: 12px; height: 12px; }
+    .fx-tiles { padding: 6px 8px; }
+    .fx-tile, .fx-new-project { justify-content: center; padding: 0; height: 56px; }
+    .fx-tile-name, .fx-tile-count, .fx-new-project span { display: none; }
+    .fx-new-project { height: 44px; }
+    .fx-side-bottom { flex-direction: column; align-items: center; }
+}
+
+/* Telefon: projekty a poznámky jako vodorovné pruhy nad editorem */
+@container fx (max-width: 640px) {
+    .fx-window, .fx.no-side .fx-window {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        height: 640px;
+        border-radius: 20px;
+    }
+    .fx-side .fx-top, .fx-side-bottom, .fx-new-project { display: none; }
+    .fx-side { overflow: visible; }
+    .fx-tiles { flex-direction: row; gap: 8px; padding: 12px 12px 6px; overflow-x: auto; scrollbar-width: none; }
+    .fx-tiles::-webkit-scrollbar { display: none; }
+    .fx-tile { height: 44px; padding: 0 12px 0 6px; gap: 8px; }
+    .fx-tile .fx-badge { width: 32px; height: 32px; border-radius: 9.6px; font-size: 18px; }
+    .fx-tile-name { display: block; white-space: nowrap; }
+    .fx-tile-count { display: none; }
+    .fx-list .fx-top, .fx-list-head, .fx-section { display: none !important; }
+    .fx-list-scroll { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 0 12px 10px; scrollbar-width: none; }
+    .fx-list-scroll::-webkit-scrollbar { display: none; }
+    .fx-rows { flex: none; flex-direction: row; gap: 6px; }
+    .fx-rows:empty { display: none; }
+    .fx-row { width: auto; max-width: 190px; padding: 7px 12px; border-radius: 999px; background: var(--fx-glass) !important; box-shadow: inset 0 0 0 1px var(--fx-glass-edge); }
+    .fx-row-sub { display: none; }
+    .fx-editor { box-shadow: 0 -1px 0 var(--fx-sep); }
+    .fx-head { padding: 6px 0 0; }
+    .fx-bar-row { flex-wrap: nowrap; overflow-x: auto; padding: 2px 12px; scrollbar-width: none; }
+    .fx-bar-row::-webkit-scrollbar { display: none; }
+    .fx-doc { padding: var(--fx-doc-top) 16px 32px; }
+    .fx-foot { padding: 0 16px; }
+}
+
+.fx.fx-static { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fx, .fx-window, .fx-tile, .fx-toast { transition: none; }
+}

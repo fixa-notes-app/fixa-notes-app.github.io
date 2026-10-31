@@ -127,7 +127,6 @@ a:hover { text-decoration: underline; }
 
 /* Úvod – bez velké ikony (je v liště), aby byl snímek okna vidět hned bez posouvání. */
 .hero { padding: 56px 0 40px; text-align: center; }
-.eyebrow { font-size: 14px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
 h1 { font-size: clamp(40px, 7vw, 72px); line-height: 1.04; letter-spacing: -0.03em; margin: 0 auto 18px; max-width: 13ch; }
 .lead { font-size: clamp(18px, 2.2vw, 21px); color: var(--ink-2); max-width: 40em; margin: 0 auto 30px; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
