@@ -1,2 +1,4 @@
-# fixa-site
-Fixa – a calm notes app for the Mac. Website and downloads.
+# Fixa
+
+Website of [Fixa](https://vlafiser.github.io/fixa-site/), a notes app for the Mac. The app itself is downloaded from
+[Releases](https://github.com/vlafiser/fixa-site/releases/latest); its source code isn't public.
