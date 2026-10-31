@@ -242,7 +242,7 @@
         ];
     }
     const projects = makeLibrary();
-    let current = projects[1];
+    let current = projects.find((project) => project.id === "website");
 
     // MARK: - Barvy (ProjectTheme.swift)
 
@@ -307,11 +307,13 @@
     <div class="fx-side">
         <div class="fx-top"><span class="fx-lights"><i></i><i></i><i></i></span><button class="fx-round" data-act="sidebar" title="Hide Projects (⌘S)" aria-label="Hide projects">${icons.sidebar}</button></div>
         <div class="fx-tiles"></div>
+        <div class="fx-resize" data-column="side" title="Drag to resize"></div>
         <div class="fx-side-bottom"><button class="fx-round small" data-act="help" title="Keyboard Shortcuts (⌘/)" aria-label="Keyboard shortcuts">?</button><button class="fx-round small" data-act="settings" title="Settings (⌘,)" aria-label="Settings">${icons.gear}</button></div>
     </div>
     <div class="fx-list">
         <div class="fx-top"><span class="fx-lights"><i></i><i></i><i></i></span><button class="fx-round fx-show-side" data-act="sidebar" title="Show Projects (⌘S)" aria-label="Show projects">${icons.sidebar}</button><button class="fx-round" data-act="new" title="New Note (⌘N)" aria-label="New note">${icons.compose}</button></div>
         <div class="fx-list-scroll" tabindex="0" aria-label="Notes"></div>
+        <div class="fx-resize" data-column="list" title="Drag to resize"></div>
     </div>
     <div class="fx-editor">
         <div class="fx-scroll"><div class="fx-doc" contenteditable="true" spellcheck="false"></div></div>
@@ -428,18 +430,27 @@
             const last = data.last?.[project.id];
             if (last && project.notes.some((note) => note.id === last)) project.last = last;
         }
+        if (Array.isArray(data.order)) {
+            const rank = (project) => { const index = data.order.indexOf(project.id); return index < 0 ? Infinity : index; };
+            projects.sort((a, z) => rank(a) - rank(z));
+        }
         if (data.side) host.classList.add("no-side");
+        if (data.widths) Object.assign(columnWidths, data.widths);
     }
     let saveTimer = 0, warnedFull = false;
     function saveStore() {
         clearTimeout(saveTimer);
+        saveTimer = 0;
         const notes = [];
         for (const project of projects) {
             for (const note of project.notes) {
                 if (note.changed) notes.push({ project: project.id, id: note.id, html: note.html, created: note.created, modified: note.modified, isNew: !!note.isNew });
             }
         }
-        const data = { v: storeVersion, notes, last: Object.fromEntries(projects.map((project) => [project.id, project.last])), side: host.classList.contains("no-side") };
+        const data = {
+            v: storeVersion, notes, order: projects.map((project) => project.id), widths: columnWidths,
+            last: Object.fromEntries(projects.map((project) => [project.id, project.last])), side: host.classList.contains("no-side"),
+        };
         try {
             localStorage.setItem(storeKey, JSON.stringify(data));
         } catch {
@@ -460,8 +471,10 @@
         openNote = null;
         projects.splice(0, projects.length, ...makeLibrary());
         prepare();
-        current = projects[1];
+        current = projects.find((project) => project.id === "website");
         host.classList.remove("no-side");
+        columnWidths.side = columnWidths.list = null;
+        restoreColumns();
         renderTiles();
         applyTheme();
         showNote(current.notes.find((note) => note.id === current.last), { animate: true });
@@ -1403,6 +1416,7 @@
     }
 
     host.addEventListener("click", (event) => {
+        if (suppressTileClick) return;
         const tile = event.target.closest(".fx-tile");
         if (tile) return selectProject(projects.find((project) => project.id === tile.dataset.project));
         const row = event.target.closest(".fx-row");
@@ -1419,6 +1433,201 @@
         else if (action === "help") toast("All keyboard shortcuts are in the app (⌘/).");
         else if (action === "settings") toast("Settings are in the app (⌘,).");
     });
+
+    // MARK: - Pořadí projektů (ProjectGrid)
+    // Dlaždici jde chytit a přetáhnout (myší po posunu o 4 px, prstem po podržení): na svém místě zůstane
+    // ztlumená, u myši jde její kopie a čára v akcentu ukazuje mezeru, kam se vloží (podle středů dlaždic);
+    // kde by se nic nezměnilo, čára není. Z klávesnice ⌥⌘↑ / ⌥⌘↓. Na telefonu jsou dlaždice v řadě.
+
+    const tileGap = 8;
+    let tilePress = null, tileDrag = null, suppressTileClick = false;
+
+    function moveProject(project, to) {
+        const from = projects.indexOf(project);
+        if (from < 0 || to < 0 || to >= projects.length || to === from) return;
+        const before = new Map([...tilesEl.querySelectorAll(".fx-tile")].map((tile) => [tile.dataset.project, tile.getBoundingClientRect()]));
+        projects.splice(from, 1);
+        projects.splice(to, 0, project);
+        renderTiles();
+        if (!reducedMotion.matches) {
+            for (const tile of tilesEl.querySelectorAll(".fx-tile")) {
+                const old = before.get(tile.dataset.project), now = tile.getBoundingClientRect();
+                if (!old || (old.left === now.left && old.top === now.top)) continue;
+                tile.animate([{ transform: `translate(${old.left - now.left}px, ${old.top - now.top}px)` }, { transform: "none" }],
+                    { duration: 300, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
+            }
+        }
+        scheduleSave();
+    }
+
+    const tileList = () => [...tilesEl.querySelectorAll(".fx-tile:not(.fx-tile-ghost)")];
+    function tileAxis(tile, row) {
+        return row ? { start: tile.offsetLeft, size: tile.offsetWidth } : { start: tile.offsetTop, size: tile.offsetHeight };
+    }
+    function pointerAlong(event, row) {
+        const box = tilesEl.getBoundingClientRect();
+        return row ? event.clientX - box.left + tilesEl.scrollLeft : event.clientY - box.top + tilesEl.scrollTop;
+    }
+
+    tilesEl.addEventListener("pointerdown", (event) => {
+        const tile = event.target.closest(".fx-tile");
+        if (!tile || event.button !== 0) return;
+        const row = getComputedStyle(tilesEl).flexDirection === "row";
+        tilePress = {
+            tile, row, start: event, last: event, touch: event.pointerType === "touch",
+            grab: pointerAlong(event, row) - tileAxis(tile, row).start,
+        };
+        // Prstem až po podržení – jinak by se nedalo posouvat pruh dlaždic.
+        if (tilePress.touch) tilePress.timer = setTimeout(() => { if (tilePress) beginTileDrag(); }, 350);
+    });
+    addEventListener("pointermove", (event) => {
+        if (!tilePress) return;
+        tilePress.last = event;
+        if (!tileDrag) {
+            const moved = Math.hypot(event.clientX - tilePress.start.clientX, event.clientY - tilePress.start.clientY);
+            if (tilePress.touch) {
+                if (moved > 8) cancelTilePress();
+                return;
+            }
+            if (moved < 4) return;
+            beginTileDrag();
+        }
+        updateTileDrag();
+    });
+    addEventListener("pointerup", () => finishTileDrag(true));
+    addEventListener("pointercancel", () => finishTileDrag(false));
+    tilesEl.addEventListener("touchmove", (event) => { if (tileDrag) event.preventDefault(); }, { passive: false });
+    tilesEl.addEventListener("contextmenu", (event) => { if (tilePress?.touch) event.preventDefault(); });
+
+    function cancelTilePress() {
+        clearTimeout(tilePress?.timer);
+        tilePress = null;
+    }
+
+    function beginTileDrag() {
+        const { tile, row } = tilePress;
+        const ghost = tile.cloneNode(true);
+        ghost.classList.add("fx-tile-ghost");
+        ghost.removeAttribute("data-project");
+        ghost.setAttribute("aria-hidden", "true");
+        ghost.style.width = `${tile.offsetWidth}px`;
+        ghost.style.height = `${tile.offsetHeight}px`;
+        const line = document.createElement("div");
+        line.className = `fx-tile-drop${row ? " row" : ""}`;
+        line.hidden = true;
+        tilesEl.append(ghost, line);
+        tile.classList.add("fx-lifted");
+        tileDrag = { ghost, line, slot: null };
+        suppressTileClick = true;
+        updateTileDrag();
+    }
+
+    function updateTileDrag() {
+        const { tile, row, grab, last } = tilePress;
+        const { ghost, line } = tileDrag;
+        const tiles = tileList(), frames = tiles.map((element) => tileAxis(element, row));
+        const own = tileAxis(tile, row), first = frames[0], end = frames[frames.length - 1];
+        const position = pointerAlong(last, row);
+        // Kopie dlaždice jde s myší, ale nevyjede za první a poslední dlaždici víc než o půlku.
+        const lead = Math.min(Math.max(position - grab, first.start - own.size / 2), end.start + end.size - own.size / 2);
+        ghost.style.transform = row ? `translate(${lead}px, ${tile.offsetTop}px)` : `translate(${tile.offsetLeft}px, ${lead}px)`;
+        const from = tiles.indexOf(tile);
+        let slot = frames.filter((frame) => frame.start + frame.size / 2 < position).length;
+        if (slot === from || slot === from + 1) slot = null;
+        tileDrag.slot = slot;
+        line.hidden = slot === null;
+        if (slot === null) return;
+        const at = slot < frames.length ? frames[slot].start - tileGap / 2 : end.start + end.size + tileGap / 2;
+        if (row) {
+            line.style.height = `${tile.offsetHeight}px`;
+            line.style.transform = `translate(${at - 3.5}px, ${tile.offsetTop}px)`;
+        } else {
+            line.style.width = `${tile.offsetWidth}px`;
+            line.style.transform = `translate(${tile.offsetLeft}px, ${at - 3.5}px)`;
+        }
+    }
+
+    function finishTileDrag(drop) {
+        if (!tilePress) return;
+        const { tile } = tilePress;
+        const project = projects.find((candidate) => candidate.id === tile.dataset.project);
+        const slot = tileDrag?.slot ?? null;
+        if (tileDrag) {
+            tileDrag.ghost.remove();
+            tileDrag.line.remove();
+            tile.classList.remove("fx-lifted");
+            // Klik, který po puštění přijde, projekt nevybírá.
+            setTimeout(() => { suppressTileClick = false; });
+        }
+        tileDrag = null;
+        cancelTilePress();
+        if (drop && slot !== null && project) {
+            const from = projects.indexOf(project);
+            moveProject(project, slot > from ? slot - 1 : slot);
+        }
+    }
+
+    // MARK: - Šířky sloupců (WindowLayout, ColumnWidthKeeper)
+    // Hranici mezi projekty a poznámkami i mezi poznámkami a editorem jde táhnout: projekty 210–360 px,
+    // poznámky 220–420 px, editor aspoň 280 px; okno svou šířku nemění. Šířky se pamatují (localStorage).
+
+    const sideRange = [210, 360], listRange = [220, 420], editorMin = 280;
+    const columnWidths = { side: null, list: null };
+    const sideColumn = $(".fx-side"), listColumn = $(".fx-list");
+    const columnVar = { side: "--fx-side-w", list: "--fx-list-w" };
+
+    // Nastavené šířky do CSS (null = výchozí podle šířky okna).
+    function restoreColumns() {
+        for (const key of ["side", "list"]) {
+            if (columnWidths[key] === null) host.style.removeProperty(columnVar[key]);
+            else host.style.setProperty(columnVar[key], `${columnWidths[key]}px`);
+        }
+    }
+    function setColumn(key, value) {
+        columnWidths[key] = Math.round(value);
+        host.style.setProperty(columnVar[key], `${columnWidths[key]}px`);
+    }
+    // Užší stránka: editor si drží aspoň 280 px – nejdřív ustoupí seznam poznámek, pak projekty.
+    function fitColumns() {
+        if (host.clientWidth <= 640) return;
+        let missing = editorMin - editorEl.getBoundingClientRect().width;
+        if (missing <= 0.5) return;
+        if (columnWidths.list !== null) {
+            const value = Math.max(listRange[0], columnWidths.list - missing);
+            missing -= columnWidths.list - value;
+            setColumn("list", value);
+        }
+        if (missing > 0.5 && columnWidths.side !== null && host.clientWidth > 900 && !host.classList.contains("no-side")) {
+            setColumn("side", Math.max(sideRange[0], columnWidths.side - missing));
+        }
+    }
+
+    // Táhne se jen jeden sloupec, druhý se nehne; editor zůstane aspoň 280 px široký.
+    for (const handle of host.querySelectorAll(".fx-resize")) {
+        handle.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            const key = handle.dataset.column;
+            const column = key === "side" ? sideColumn : listColumn;
+            const other = key === "side" ? listColumn.getBoundingClientRect().width
+                : host.classList.contains("no-side") ? 0 : sideColumn.getBoundingClientRect().width;
+            const [low, high] = key === "side" ? sideRange : listRange;
+            const max = Math.max(low, Math.min(high, host.clientWidth - other - editorMin));
+            const startWidth = column.getBoundingClientRect().width, startX = event.clientX;
+            host.classList.add("fx-resizing");
+            const move = (moveEvent) => setColumn(key, Math.min(Math.max(startWidth + moveEvent.clientX - startX, low), max));
+            const up = () => {
+                removeEventListener("pointermove", move);
+                removeEventListener("pointerup", up);
+                removeEventListener("pointercancel", up);
+                host.classList.remove("fx-resizing");
+                scheduleSave();
+            };
+            addEventListener("pointermove", move);
+            addEventListener("pointerup", up);
+            addEventListener("pointercancel", up);
+        });
+    }
 
     function toggleSidebar() {
         host.classList.toggle("no-side");
@@ -1437,6 +1646,9 @@
         const command = event.metaKey || event.ctrlKey;
         let handled = true;
         if (command && !event.altKey && !event.shiftKey && event.code === "KeyS") toggleSidebar();
+        else if (command && event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+            moveProject(current, projects.indexOf(current) + (event.key === "ArrowUp" ? -1 : 1));
+        }
         else if (command && !event.altKey && event.code === "KeyD") {
             const step = event.shiftKey ? projects.length - 1 : 1;
             selectProject(projects[(projects.indexOf(current) + step) % projects.length]);
@@ -1466,7 +1678,8 @@
         const typing = document.activeElement === doc;
         const quiet = now - lastUse > (typing ? afterTyping : afterUse);
         const popOpen = !menuPop.hidden || !linkPop.hidden;
-        if (!visible || document.hidden || !quiet || popOpen || now - lastSwitch < cycle) return;
+        const dragging = tilePress || host.classList.contains("fx-resizing");
+        if (!visible || document.hidden || !quiet || popOpen || dragging || now - lastSwitch < cycle) return;
         lastSwitch = now;
         selectProject(projects[(projects.indexOf(current) + 1) % projects.length], { auto: true });
     }, 500);
@@ -1485,5 +1698,7 @@
     showNote(current.notes.find((note) => note.id === current.last));
     layoutBar();
     new ResizeObserver(() => layoutBar()).observe(editorEl);
+    restoreColumns();
+    new ResizeObserver(() => fitColumns()).observe(host);
     document.fonts?.ready.then(() => { widths = null; layoutBar(); });
 })();
