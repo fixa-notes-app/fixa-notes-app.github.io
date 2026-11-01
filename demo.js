@@ -25,6 +25,14 @@
     // Obrázky jsou pro Retinu (2×) – v poznámce mají poloviční šířku, nejvýš šířku textu.
     const image = (file, width, height) =>
         `<figure contenteditable="false"><img src="images/${file}" width="${width / 2}" height="${height / 2}" data-fit="${width / 2}" alt="" loading="lazy" draggable="false"></figure>`;
+    // Dokument (FileAttachment): náhled první strany, nebo karta – název s příponou a nenápadně velikost.
+    const sizeLabel = (bytes) => bytes < 1000 ? `${bytes} bytes` : bytes < 1e6 ? `${Math.round(bytes / 1e3)} KB` : `${(bytes / 1e6).toFixed(1)} MB`;
+    const fileBlock = (name, bytes, thumb = "", style = "preview") => {
+        const ext = (name.split(".").pop() || "").slice(0, 4).toUpperCase();
+        const page = thumb ? `<img src="${thumb}" alt="" draggable="false">` : `<span class="fx-file-icon">${ext}</span>`;
+        return `<div class="fx-file ${style}" contenteditable="false"><span class="fx-file-page">${page}</span>` +
+            `<span class="fx-file-text"><span class="fx-file-name">${name}</span><span class="fx-file-size">${sizeLabel(bytes)}</span></span></div>`;
+    };
     const card = (text, url, icon, kind = "") =>
         `<div class="fx-card" contenteditable="false" data-url="${url}"><span class="fx-card-icon ${kind}">${icon}</span>` +
         `<span class="fx-card-text"><span class="fx-card-title">${text}</span><span class="fx-card-host">${new URL(url).hostname.replace(/^www\./, "")}</span></span></div>`;
@@ -44,7 +52,7 @@
                    b("Notes and Pinning") + " – new notes, pinning, deleting",
                    b("Writing and Formatting") + " – styles, highlighter, lists and checklists",
                    b("Links") + " – as text, a card or a large preview",
-                   b("Images") + " – add, resize and move them",
+                   b("Images and Documents") + " – add, resize and move them; PDFs, Word and Pages files too",
                    b("Search") + " – find anything in all projects",
                    b("Keyboard Shortcuts") + " – the ones worth knowing",
                    b("Sync Between Your Macs") + " – the same notes everywhere, nothing lost",
@@ -107,7 +115,7 @@
                 card("Highlighter – Wikipedia", "https://en.wikipedia.org/wiki/Highlighter", "W") +
                 ul(b("Preview") + " – a large card with the page’s picture and description") +
                 p(b("⌥⌘K"), " goes text → card → preview from the keyboard. The same menu has ", b("Open Link"), " and ", b("Copy Link"), ". (“Fixa” is Czech for a marker pen.)") },
-            { id: "images", age: 0.3, html: title("Images") +
+            { id: "images", age: 0.3, html: title("Images and Documents") +
                 heading("Add an Image") +
                 ul("Drag it from Finder or another app straight into the note – it lands where you let go.", "Paste it with " + b("⌘V") + ".",
                    "Click " + b("Image") + " in the bar above the note, or press " + b("⇧⌘I") + ".") +
@@ -118,7 +126,16 @@
                    "Drag the handle in the corner to make it bigger or smaller – it keeps its shape.",
                    b("⌃⌘=") + " bigger, " + b("⌃⌘-") + " smaller, " + b("⌃⌘0") + " back to the width of the text.",
                    "Drag a selected image to move it somewhere else in the note.") +
-                p("Images are stored next to your notes and sync with them. ", b("Settings › Images"), " shows how much space they take and can clean up images no note uses anymore.") },
+                p("Images are stored next to your notes and sync with them. ", b("Settings › Images"), " shows how much space they take and can clean up images no note uses anymore.") +
+                heading("Documents") +
+                p("PDFs, Word, Pages, Excel – any file up to 100 MB. Fixa keeps a copy, so the document travels with the note to your other Macs.") +
+                image("guide-files.png", 1800, 984) +
+                ul("Drag it into the note, paste it with " + b("⌘V") + ", or click " + b("File") + " in the bar above the note (" + b("⇧⌘A") + ").",
+                   "It shows as a " + b("preview") + " of the first page, or as a small " + b("card") + " – both with the name and the size. " + b("⌥⌘K") + " switches between them.",
+                   "Click it to " + hl("read it right in Fixa", "green") + ". " + b("Open in") + " there opens it in its app – your edits are saved into the note’s copy.",
+                   "Drag the corner to make it bigger or smaller, like an image.",
+                   "The small arrow on the document sets what a click does – a preview in Fixa or Finder – and whether Finder shows the original file or the copy in Fixa.") +
+                p(b("Settings › Documents"), " sets this for all documents; a document you set by hand keeps its own choice.") },
             { id: "search", age: 0.35, html: title("Search") +
                 p("Press ", b("⌘F"), " and start typing – Fixa searches every note in every project.") +
                 image("guide-search.png", 1840, 1154) +
@@ -198,6 +215,7 @@
 
         const lisbon = [
             { id: "packing", age: 3, html: title("Packing List") +
+                fileBlock("Boarding Pass.pdf", 24000, "images/sample-boarding-pass.png") +
                 todo([true, "Passport"], [true, "Charger and adapter"], [true, "Comfortable shoes – lots of hills!"],
                      [false, "Sunscreen"], [false, "Light jacket for the evenings"], [false, "Download offline maps"]) },
             { id: "itinerary", age: 28, html: title("Itinerary") +
@@ -291,6 +309,7 @@
         highlighter: svg('<path d="M4.5 15.5l1-3.6 7.9-7.9a1.6 1.6 0 0 1 2.3 0l.3.3a1.6 1.6 0 0 1 0 2.3l-7.9 7.9z"/><path d="M11.8 5.6l2.6 2.6M3 17.5h6"/>'),
         eraser: svg('<path d="M8.5 16.5h8"/><path d="M11.4 3.9l4.6 4.6a1.5 1.5 0 0 1 0 2.1l-5.4 5.4a1.5 1.5 0 0 1-1.1.5H6.7a1.5 1.5 0 0 1-1.1-.5l-2.1-2.1a1.5 1.5 0 0 1 0-2.1l5.8-5.9a1.5 1.5 0 0 1 2.1 0z"/><path d="M6.8 8.6l4.6 4.6"/>'),
         link: svg('<path d="M8.6 11.4a3.1 3.1 0 0 0 4.4 0l2.7-2.7a3.1 3.1 0 0 0-4.4-4.4l-1.1 1.1"/><path d="M11.4 8.6a3.1 3.1 0 0 0-4.4 0l-2.7 2.7a3.1 3.1 0 0 0 4.4 4.4l1.1-1.1"/>'),
+        paperclip: svg('<path d="M14.6 7.4l-5.8 5.8a1.9 1.9 0 0 1-2.7-2.7l6.1-6.1a3.3 3.3 0 0 1 4.7 4.7l-6.4 6.4a4.7 4.7 0 0 1-6.6-6.6l5.6-5.6"/>'),
         photo: svg('<rect x="2.5" y="4" width="15" height="12" rx="2.5"/><circle cx="7" cy="8.2" r="1.4"/><path d="M3 14.2l4-3.6 3 2.6 3.1-3.1 4.4 4.2"/>'),
         pin: svg('<path d="M3.5 1h5l-.9 3.4L9.6 6.5H6.5L6 12l-.5-5.5H2.4l2-2.1z"/>', 12, 'fill="currentColor"'),
         note: svg('<rect x="1.8" y="2" width="8.4" height="8.4" rx="1.8"/><path d="M4 5h4M4 7.3h2.8"/>', 12, 'fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"'),
@@ -381,7 +400,8 @@
                     lines.push(`${marker} ${li.textContent}`);
                 }
             } else if (tag !== "FIGURE") {
-                lines.push(node.classList.contains("fx-card") ? node.querySelector(".fx-card-title").textContent : node.textContent);
+                lines.push(node.classList.contains("fx-card") ? node.querySelector(".fx-card-title").textContent
+                    : node.classList.contains("fx-file") ? node.querySelector(".fx-file-name").textContent : node.textContent);
             }
         }
         if (loose) lines.push(loose);
@@ -405,7 +425,7 @@
     // Změny zůstávají jen v localStorage tohoto prohlížeče (nic se nikam neposílá) a přežijí obnovení
     // stránky. Ukládají se jen změněné a nové poznámky. Při změně ukázkových dat zvyš `storeVersion` –
     // staré úpravy by jinak přepsaly nový obsah.
-    const storeKey = "fixa-demo", storeVersion = 2;
+    const storeKey = "fixa-demo", storeVersion = 3;
     function readStore() {
         try {
             const data = JSON.parse(localStorage.getItem(storeKey));
@@ -485,7 +505,7 @@
 
     const sortedNotes = (project) => [...project.notes].sort((a, z) => z.modified - a.modified);
     const plural = (count) => (count === 1 ? "1 note" : `${count} notes`);
-    const isEmptyNote = (note) => !note.title && !/<(figure|img)|fx-card/.test(note.html);
+    const isEmptyNote = (note) => !note.title && !/<(figure|img)|fx-card|fx-file/.test(note.html);
 
     // MARK: - Vykreslení
 
@@ -714,7 +734,7 @@
         if (!range || !inDoc(range.commonAncestorContainer) && range.commonAncestorContainer !== doc) return;
         const saved = [range.startContainer, range.startOffset, range.endContainer, range.endOffset];
         const all = units();
-        const chosen = all.filter((unit) => range.intersectsNode(unit.el) && !unit.el.matches("figure, .fx-card"));
+        const chosen = all.filter((unit) => range.intersectsNode(unit.el) && !unit.el.matches("figure, .fx-card, .fx-file"));
         if (!chosen.length) return;
         const change = plan(chosen);
         const replaced = new Map();
@@ -906,6 +926,8 @@
         `<div class="fx-pop fx-link-pop" hidden><b>Link</b><input type="url" placeholder="https://" aria-label="Address"><div class="fx-link-actions"><button type="button" data-cmd="link-cancel">Cancel</button><button type="button" class="primary" data-cmd="link-apply">Apply</button></div></div>`);
     group("image", button({ cls: "fx-wide", data: 'data-cmd="image"', title: "Image (⇧⌘I)" }, `${icons.photo}Image`) +
         '<input type="file" accept="image/*" hidden>');
+    group("file", button({ cls: "fx-wide", data: 'data-cmd="file"', title: "Attach File (⇧⌘A) – or drag a document into the note" }, `${icons.paperclip}File`) +
+        '<input type="file" hidden>');
 
     const menuPop = groups.menu.querySelector(".fx-menu-pop");
     const linkPop = groups.link.querySelector(".fx-link-pop");
@@ -919,6 +941,7 @@
     }
     const linkInput = linkPop.querySelector("input");
     const fileInput = groups.image.querySelector("input");
+    const anyFileInput = groups.file.querySelector("input");
 
     // Šířky skupin se měří jednou (písmo se nemění); rozložení podle FormatBarLayout.make: do první řady
     // styly, písmo + seznamy a fixy, co se vejde (styly jako tlačítka jen když se vejde všechno), zbytek
@@ -943,7 +966,7 @@
         let first = ["segments", "text", "markers"], rest = [];
         if (isPhone()) {
             // Telefon: celá lišta v jedné řadě, která se posouvá do strany – na text zbude víc místa.
-            first = ["menu", "text", "markers", "link", "image"];
+            first = ["menu", "text", "markers", "link", "image", "file"];
             rest = null;
         } else if (!fits(first)) {
             first = ["menu"];
@@ -953,7 +976,7 @@
             }
         }
         row1.replaceChildren(...first.map((key) => groups[key]));
-        row2.replaceChildren(...(rest ? [...rest, "link", "image"] : []).map((key) => groups[key]));
+        row2.replaceChildren(...(rest ? [...rest, "link", "image", "file"] : []).map((key) => groups[key]));
         // Výchozí místo pro začátek textu: na úrovni titulku první poznámky v seznamu (níž, když by narazil
         // do lišty); hlavička sahá do půli cesty k němu. Mezera pod hlavičkou je ale dvojnásobná, text začíná
         // o kus níž (NoteEditor.textGapScale).
@@ -1053,7 +1076,8 @@
         for (const file of files) {
             let html;
             try {
-                html = await importImage(file);
+                // Dokument (PDF, Word…): jen karta s názvem a velikostí – obsah zůstává na tvém Macu.
+                html = file.type.startsWith("image/") ? await importImage(file) : fileBlock(esc(file.name), file.size);
             } catch {
                 continue;
             }
@@ -1066,7 +1090,7 @@
             at = null;
             // Kurzor za obrázek (na začátek dalšího řádku).
             let next = figure.nextElementSibling;
-            if (!next || next.matches("figure, .fx-card")) {
+            if (!next || next.matches("figure, .fx-card, .fx-file")) {
                 next = document.createElement("p");
                 next.append(document.createElement("br"));
                 figure.after(next);
@@ -1082,7 +1106,7 @@
     // Obrázek na místo kurzoru: odstavec (i položka seznamu) se na tom místě rozdělí.
     function insertFigure(figure, range) {
         const unit = range ? blockOf(range.startContainer) : null;
-        if (!unit || unit.matches("figure, .fx-card")) {
+        if (!unit || unit.matches("figure, .fx-card, .fx-file")) {
             const anchor = unit || doc.lastElementChild;
             if (anchor) anchor.after(figure);
             else doc.append(figure);
@@ -1285,6 +1309,7 @@
             case "link-apply": applyLink(); break;
             case "link-cancel": linkPop.hidden = true; focusDoc(); break;
             case "image": fileInput.click(); break;
+            case "file": anyFileInput.click(); break;
         }
         updateBar();
     });
@@ -1295,6 +1320,10 @@
     fileInput.addEventListener("change", () => {
         insertImages([...fileInput.files]);
         fileInput.value = "";
+    });
+    anyFileInput.addEventListener("change", () => {
+        insertImages([...anyFileInput.files]);
+        anyFileInput.value = "";
     });
     document.addEventListener("mousedown", (event) => {
         if (!event.target.closest?.(".fx-pop, [data-cmd=menu], [data-cmd=link]")) closePops();
@@ -1389,16 +1418,18 @@
     scrollEl.addEventListener("click", (event) => {
         const linkCard = event.target.closest?.(".fx-card");
         if (linkCard && inDoc(linkCard)) window.open(linkCard.dataset.url, "_blank", "noopener");
+        const fileCard = event.target.closest?.(".fx-file");
+        if (fileCard && inDoc(fileCard)) toast("In Fixa, a click opens the document right in the app.");
     });
 
     // Vložený text jen jako text (cizí styly by do poznámky nepatřily), obrázky jako obrázky.
     scrollEl.addEventListener("paste", (event) => {
-        const files = [...(event.clipboardData?.files || [])].filter((file) => file.type.startsWith("image/"));
+        const files = [...(event.clipboardData?.files || [])];
         event.preventDefault();
         if (files.length) insertImages(files);
         else exec("insertText", event.clipboardData.getData("text/plain"));
     });
-    const imageFiles = (event) => [...(event.dataTransfer?.files || [])].filter((file) => file.type.startsWith("image/"));
+    const imageFiles = (event) => [...(event.dataTransfer?.files || [])];
     scrollEl.addEventListener("dragover", (event) => {
         if ([...(event.dataTransfer?.types || [])].includes("Files")) event.preventDefault();
     });
