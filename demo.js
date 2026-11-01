@@ -152,6 +152,7 @@
                 p("At the bottom left of the window:") +
                 image("guide-buttons.png", 840, 356) +
                 ul(b("?") + " – all keyboard shortcuts (⌘/)", b("Gear") + " – Settings (⌘,)",
+               b("Update") + " – a new version of Fixa is ready. Click it to see what’s new and update. It only shows up when there is one.",
                    hl("Orange number", "orange") + " – sync decisions waiting for you. It only shows up when there are some.") +
                 heading("In Settings") +
                 ul(b("General") + " – open Fixa when you log in", b("Updates") + " – Fixa updates itself and always asks first",
@@ -404,7 +405,7 @@
     // Změny zůstávají jen v localStorage tohoto prohlížeče (nic se nikam neposílá) a přežijí obnovení
     // stránky. Ukládají se jen změněné a nové poznámky. Při změně ukázkových dat zvyš `storeVersion` –
     // staré úpravy by jinak přepsaly nový obsah.
-    const storeKey = "fixa-demo", storeVersion = 1;
+    const storeKey = "fixa-demo", storeVersion = 2;
     function readStore() {
         try {
             const data = JSON.parse(localStorage.getItem(storeKey));
@@ -933,6 +934,8 @@
         box.remove();
     }
     const isPhone = () => host.clientWidth <= 640;
+    // Mezera mezi spodkem hlavičky editoru a začátkem textu proti zarovnání na seznam (NoteEditor.textGapScale).
+    const textGapScale = 2;
     function layoutBar() {
         if (!widths) measure();
         const available = headEl.clientWidth - (isPhone() ? 24 : 44), gap = 8;
@@ -951,13 +954,17 @@
         }
         row1.replaceChildren(...first.map((key) => groups[key]));
         row2.replaceChildren(...(rest ? [...rest, "link", "image"] : []).map((key) => groups[key]));
-        // Text začíná na úrovni titulku první poznámky v seznamu; níž jen když by narazil do lišty.
+        // Výchozí místo pro začátek textu: na úrovni titulku první poznámky v seznamu (níž, když by narazil
+        // do lišty); hlavička sahá do půli cesty k němu. Mezera pod hlavičkou je ale dvojnásobná, text začíná
+        // o kus níž (NoteEditor.textGapScale).
         const lastRow = rest ? row2 : row1;
         const barBottom = lastRow.offsetTop + lastRow.offsetHeight;
         const listTitleTop = 52 + 6 + 42 + 14 + 9 + 3;
-        const capTop = isPhone() ? barBottom + 24 : Math.max(listTitleTop, barBottom + 24);
+        const alignedTop = isPhone() ? barBottom + 24 : Math.max(listTitleTop, barBottom + 24);
+        const headHeight = (barBottom + alignedTop) / 2;
+        const capTop = headHeight + textGapScale * (alignedTop - headHeight);
         host.style.setProperty("--fx-doc-top", `${Math.round(capTop - 6)}px`);
-        host.style.setProperty("--fx-head-height", `${Math.round((barBottom + capTop) / 2)}px`);
+        host.style.setProperty("--fx-head-height", `${Math.round(headHeight)}px`);
         updateBar();
     }
 
