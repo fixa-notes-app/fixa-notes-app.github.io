@@ -594,7 +594,7 @@
         stripWhitespace(fresh);
         doc.replaceWith(fresh);
         doc = fresh;
-        for (const figure of doc.querySelectorAll(".fx-selected")) figure.classList.remove("fx-selected");
+        for (const selected of doc.querySelectorAll(".fx-selected, .fx-on-handle")) selected.classList.remove("fx-selected", "fx-on-handle");
         scrollEl.scrollTop = 0;
         renderList();
         renderFoot();
@@ -649,6 +649,7 @@
         // Výběr obrázku (a úchyt, přesun) je jen stav editoru, do poznámky nepatří.
         const copy = doc.cloneNode(true);
         for (const figure of copy.querySelectorAll("figure[class]")) figure.removeAttribute("class");
+        for (const card of copy.querySelectorAll(".fx-file")) card.classList.remove("fx-selected", "fx-on-handle", "fx-sizing");
         openNote.html = copy.innerHTML;
         openNote.modified = Date.now();
         openNote.changed = true;
@@ -788,7 +789,8 @@
 
     // Chrome při slučování odstavců přidává inline styly (velikost písma, tučnost) – Fixa nic takového nemá.
     function cleanStyles() {
-        const styled = doc.querySelectorAll("[style], font");
+        // Šířka dokumentu je jediný styl, který do poznámky patří (jako `w=` v odkazu ve Fixe).
+        const styled = doc.querySelectorAll("[style]:not(.fx-file), font");
         if (!styled.length) return;
         const sel = selection();
         const saved = sel.rangeCount ? [sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset] : null;
@@ -1166,6 +1168,7 @@
     }
 
     const figureAt = (node) => (node?.nodeType === Node.ELEMENT_NODE && node.tagName === "FIGURE" && node.parentNode === doc ? node : null);
+    const fileAt = (node) => (node?.nodeType === Node.ELEMENT_NODE && node.classList.contains("fx-file") && node.parentNode === doc ? node : null);
     // Vybraný obrázek = výběr je právě jeden obrázek (jako jeden znak s obrázkem ve Fixe).
     function selectedFigure() {
         if (document.activeElement !== doc || !selection().rangeCount) return null;
@@ -1173,9 +1176,18 @@
         if (range.startContainer !== range.endContainer || range.endOffset - range.startOffset !== 1) return null;
         return figureAt(range.startContainer.childNodes[range.startOffset]);
     }
+    // Vybraný dokument = výběr je právě on (po změně velikosti zůstane vybraný – ⌃⌘= / ⌃⌘- / ⌃⌘0).
+    function selectedFile() {
+        if (document.activeElement !== doc || !selection().rangeCount) return null;
+        const range = selection().getRangeAt(0);
+        if (range.startContainer !== range.endContainer || range.endOffset - range.startOffset !== 1) return null;
+        return fileAt(range.startContainer.childNodes[range.startOffset]);
+    }
     function showImageSelection() {
         const selected = selectedFigure();
         for (const figure of doc.querySelectorAll("figure")) figure.classList.toggle("fx-selected", figure === selected);
+        const file = selectedFile();
+        for (const card of doc.querySelectorAll(".fx-file")) card.classList.toggle("fx-selected", card === file);
     }
     function selectFigure(figure) {
         doc.focus({ preventScroll: true });
@@ -1198,6 +1210,8 @@
     }
     // ⌃⌘= / ⌃⌘- (factor), ⌃⌘0 = zpátky na výchozí šířku (nil).
     function resizeSelectedImage(factor) {
+        const card = selectedFile();
+        if (card) return resizeFile(card, factor);
         const figure = selectedFigure();
         if (!figure) return;
         const image = figure.querySelector("img");
@@ -1212,6 +1226,50 @@
         }
         commit();
         selectFigure(figure);
+    }
+
+    // Velikost dokumentu (FileCardCell): šířka 160 – šířka textu (nejvýš 920), výchozí 440 (karta) / 460 (náhled);
+    // klik dokument otevírá, takže úchyt vpravo dole je vidět při najetí myší.
+    const minFileWidth = 160, maxFileWidth = 920;
+    function setFileWidth(card, width) {
+        const value = Math.round(Math.min(Math.max(width, minFileWidth), textWidth(), maxFileWidth));
+        card.style.width = `${value}px`;
+        card.style.maxWidth = "100%";
+    }
+    function resizeFile(card, factor) {
+        if (factor) setFileWidth(card, card.getBoundingClientRect().width * factor);
+        else card.removeAttribute("style");
+        commit();
+        selectFile(card);
+    }
+    function selectFile(card) {
+        doc.focus({ preventScroll: true });
+        const range = document.createRange();
+        range.selectNode(card);
+        selection().removeAllRanges();
+        selection().addRange(range);
+        showImageSelection();
+    }
+    const onFileHandle = (card, event) => {
+        const box = card.getBoundingClientRect();
+        return Math.hypot(event.clientX - (box.right - 11), event.clientY - (box.bottom - 11)) < 14;
+    };
+    // Po tažení za úchyt nepřijde zpráva o otevření (klik, který tažení ukončil).
+    let fileResized = false;
+    function trackFileResize(card, start) {
+        const startWidth = card.getBoundingClientRect().width;
+        card.classList.add("fx-sizing");
+        const move = (event) => setFileWidth(card, startWidth + event.clientX - start.clientX);
+        const up = () => {
+            removeEventListener("pointermove", move);
+            card.classList.remove("fx-sizing");
+            fileResized = true;
+            setTimeout(() => { fileResized = false; });
+            commit();
+            selectFile(card);
+        };
+        addEventListener("pointermove", move);
+        addEventListener("pointerup", up, { once: true });
     }
 
     // Tažení za úchyt: velikost se mění průběžně a uloží se po puštění.
@@ -1278,6 +1336,11 @@
     }
 
     scrollEl.addEventListener("pointerdown", (event) => {
+        const card = event.target.closest?.(".fx-file");
+        if (card && inDoc(card) && event.button === 0 && onFileHandle(card, event)) {
+            event.preventDefault();
+            return trackFileResize(card, event);
+        }
         const figure = event.target.closest?.("figure");
         if (!figure || !inDoc(figure) || event.button !== 0) return;
         event.preventDefault();
@@ -1287,6 +1350,8 @@
         else trackMove(figure, event);
     });
     scrollEl.addEventListener("pointermove", (event) => {
+        const card = event.target.closest?.(".fx-file");
+        if (card) card.classList.toggle("fx-on-handle", onFileHandle(card, event));
         const figure = event.target.closest?.("figure.fx-selected");
         if (!figure) return;
         const box = figure.querySelector("img").getBoundingClientRect();
@@ -1422,7 +1487,7 @@
         const linkCard = event.target.closest?.(".fx-card");
         if (linkCard && inDoc(linkCard)) window.open(linkCard.dataset.url, "_blank", "noopener");
         const fileCard = event.target.closest?.(".fx-file");
-        if (fileCard && inDoc(fileCard)) toast("In Fixa, a click opens the document right in the app.");
+        if (fileCard && inDoc(fileCard) && !fileResized) toast("In Fixa, a click opens the document right in the app.");
     });
 
     // Vložený text jen jako text (cizí styly by do poznámky nepatřily), obrázky jako obrázky.
