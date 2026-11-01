@@ -3,12 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Fixa – Notes for Mac, Sorted by Project</title>
-    <meta name="description" content="Fixa is a calm, fast notes app for the Mac. Every note lives in a project, and the whole window takes on that project’s color.">
-    <meta name="theme-color" content="#E0E0F5" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#2C2C33" media="(prefers-color-scheme: dark)">
-    <meta property="og:title" content="Fixa – Notes for Mac, Sorted by Project">
-    <meta property="og:description" content="A calm, fast notes app for the Mac. Projects, colors, a real highlighter, checklists and sync between your Macs.">
+    <title>Fixa – Simple Notes, Built for Switching Projects</title>
+    <meta name="description" content="Simple notes for the Mac, built for switching projects in a keystroke. Made for working with AI across many contexts – with sync through your own iCloud and nothing sent anywhere else.">
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+    <meta property="og:title" content="Fixa – Simple Notes, Built for Switching Projects">
+    <meta property="og:description" content="Simple notes for the Mac, built for switching projects in a keystroke. Sync through your own iCloud, nothing sent anywhere else.">
     <meta property="og:image" content="https://fixa-notes-app.github.io/images/window.png">
     <meta property="og:url" content="https://fixa-notes-app.github.io/">
     <meta property="og:type" content="website">
@@ -19,8 +19,6 @@
     <link rel="stylesheet" href="demo.css">
 </head>
 <body>
-<div class="blobs" aria-hidden="true"></div>
-
 <header class="bar">
     <div class="wrap">
         <a class="brand" href="#top"><img src="images/icon.png" alt=""> Fixa</a>
@@ -36,8 +34,8 @@
 <main id="top">
     <section class="hero" data-project="blue">
         <div class="wrap">
-            <h1>Every note in its place.</h1>
-            <p class="lead">Fixa is a calm, fast notes app for your Mac. Every note lives in a project, and the whole window takes on that project’s color – so you always know where you are.</p>
+            <h1>Simple notes. Built for switching projects.</h1>
+            <p class="lead">Building with AI means juggling projects, prompts and context all day. Fixa gives every project its own color-coded space you can jump to in a keystroke – with sync across your Macs built in, and every note kept on your Mac and in your own iCloud.</p>
             <div class="actions">
                 <a class="button" href="https://github.com/fixa-notes-app/fixa-notes-app.github.io/releases/latest/download/Fixa.dmg">
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.42l3.3 3.3V4a1 1 0 0 1 1-1Zm-7 15a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z"/></svg>
@@ -45,7 +43,7 @@
                 </a>
                 <a class="button glass" href="#install">How to install</a>
             </div>
-            <p class="meta">Version 0.8 · macOS 26 Tahoe or later · Apple silicon and Intel · Free</p>
+            <p class="meta">Version 0.9 · macOS 26 Tahoe or later · Apple silicon and Intel · Free</p>
             <!-- Živé okno Fixy (demo.js); bez JavaScriptu snímek okna. -->
             <div class="fx" id="fixa-demo" aria-label="Try Fixa right here">
                 <noscript><img class="shot" src="images/window.png" width="2360" height="1480" alt="Fixa window: projects on the left, notes in the middle, the editor on the right"></noscript>
@@ -71,21 +69,39 @@
                 <h2>Small app. Everything you need.</h2>
                 <p>Fixa does fewer things than the big note apps – and does them well.</p>
             </div>
-            <div class="features">
-                <article class="tile" style="--tile: #B3B2EC"><div class="badge">🗂️</div><h3>Projects, not folders</h3><p>Every note belongs to a project. Give it a color and an emoji or your own logo, and drag the tiles into any order.</p></article>
-                <article class="tile" style="--tile: #A3C6F5"><div class="badge">🎨</div><h3>The window takes the color</h3><p>Switch projects and the whole window smoothly turns that project’s color. Twelve soft pastels, or any color you like.</p></article>
-                <article class="tile" style="--tile: #F9E08B"><div class="badge">🖍️</div><h3>A real highlighter</h3><p>Five marker colors that look like a stroke of a pen – not a box behind the text.</p></article>
-                <article class="tile" style="--tile: #A8DFA9"><div class="badge">✅</div><h3>Lists and checklists</h3><p>Bullets, numbers and to-dos. Check items off, drag them around, or just type <code>-</code> or <code>[]</code> to start a list.</p></article>
-                <article class="tile" style="--tile: #9CD3E0"><div class="badge">🔗</div><h3>Links as cards</h3><p>Show a link as text, a neat card, or a big preview with the page’s picture.</p></article>
-                <article class="tile" style="--tile: #FBC490"><div class="badge">🖼️</div><h3>Images that behave</h3><p>Drop, paste or pick an image. Resize it by the corner and drag it wherever you want it.</p></article>
-                <article class="tile" style="--tile: #A3C6F5"><div class="badge">📎</div><h3>Documents in your notes</h3><p>Drop in a PDF, Word or Pages file. It shows its first page, opens right in Fixa with a click, and syncs with the note.</p></article>
-                <article class="tile" style="--tile: #F5A9C3"><div class="badge">🔍</div><h3>Search everything</h3><p><kbd>⌘F</kbd> searches all projects at once, grouped and colored by project.</p></article>
-                <article class="tile" style="--tile: #D3B0EA"><div class="badge">⌨️</div><h3>Keyboard first</h3><p>Everything has a shortcut. Press <kbd>⌘/</kbd> to see them all.</p></article>
-                <article class="tile" style="--tile: #9EDDD6"><div class="badge">☁️</div><h3>Sync between your Macs</h3><p>Turn on iCloud Drive sync and your notes stay the same on every Mac. Nothing is overwritten blindly, and every change is kept in the history.</p></article>
-                <article class="tile" style="--tile: #F7A5A0"><div class="badge">🔄</div><h3>Updates itself</h3><p>A new version shows up with what’s new. One click, and Fixa restarts with your notes saved.</p></article>
-                <article class="tile" style="--tile: #C3C5CB"><div class="badge">📘</div><h3>A guide inside</h3><p>Your first start comes with a Fixa Guide project that shows every feature, with pictures.</p></article>
-                <article class="tile" style="--tile: #D2BFA6"><div class="badge">🔒</div><h3>Your notes, your files</h3><p>Notes are plain RTF files on your Mac or in your iCloud Drive. No account, no tracking.</p></article>
+            <div class="features-main">
+                <article class="feature" style="--tile: #A3C6F5">
+                    <div class="badge">🎯</div>
+                    <h3>Switch context in a keystroke</h3>
+                    <p>Each project is its own space with its own color and notes. Press <kbd>⌘D</kbd> and the whole window becomes the next one – you see at a glance where you are, and only what belongs there.</p>
+                </article>
+                <article class="feature" style="--tile: #D2BFA6">
+                    <div class="badge">🔒</div>
+                    <h3>Private by design</h3>
+                    <p>No account, no server, no tracking. Fixa never sends your notes anywhere – they’re plain files in a folder on your Mac that you can open in any app.</p>
+                </article>
+                <article class="feature" style="--tile: #9EDDD6">
+                    <div class="badge">☁️</div>
+                    <h3>Sync on your own iCloud</h3>
+                    <p>Turn on sync and your notes live in a Fixa folder in your iCloud Drive – visible in Finder, under your Apple Account, and off again whenever you like. No third-party cloud in between.</p>
+                </article>
+                <article class="feature" style="--tile: #F9E08B">
+                    <div class="badge">✍️</div>
+                    <h3>Everything a note needs</h3>
+                    <p>Paste a prompt, sketch a plan, keep a to-do list, drop in a screenshot or a spec. One clean page handles it all – rich enough for real work, simple enough to just start typing.</p>
+                </article>
             </div>
+            <ul class="features-more">
+                <li style="--tile: #F9E08B"><div class="badge">🖍️</div><div><strong>A real highlighter</strong><span>Five colors that look like a stroke of a pen.</span></div></li>
+                <li style="--tile: #A8DFA9"><div class="badge">✅</div><div><strong>Checklists</strong><span>Check items off, drag them around, or type <code>[]</code> to start.</span></div></li>
+                <li style="--tile: #9CD3E0"><div class="badge">🔗</div><div><strong>Links as cards</strong><span>Plain text, a neat card, or a big preview.</span></div></li>
+                <li style="--tile: #A3C6F5"><div class="badge">📎</div><div><strong>Documents inside</strong><span>PDF, Word and Pages files, previewed in place.</span></div></li>
+                <li style="--tile: #B3B2EC"><div class="badge">📌</div><div><strong>Pinned notes</strong><span>Keep what matters at the top of a project.</span></div></li>
+                <li style="--tile: #C9D5E8"><div class="badge">🕘</div><div><strong>Full history</strong><span>Every change on every Mac – deleted notes come back.</span></div></li>
+                <li style="--tile: #D3B0EA"><div class="badge">📤</div><div><strong>Markdown export</strong><span>Every note as .md and .rtf, ready for any tool.</span></div></li>
+                <li style="--tile: #F7A5A0"><div class="badge">🔄</div><div><strong>Updates itself</strong><span>New versions arrive with one click.</span></div></li>
+                <li style="--tile: #C3C5CB"><div class="badge">📘</div><div><strong>A guide inside</strong><span>A built-in project that shows every feature.</span></div></li>
+            </ul>
         </div>
     </section>
 
@@ -96,7 +112,6 @@
                 <div class="text">
                     <h2>Projects you can see.</h2>
                     <p>Projects sit on the left as glass tiles with their color and emoji – or your own logo. Drag a tile to reorder it, or use <kbd>⌥⌘↑</kbd> <kbd>⌥⌘↓</kbd>.</p>
-                    <p>Pin the notes you need most and they stay on top of the project.</p>
                 </div>
             </div>
             <div class="showcase flip">
@@ -131,7 +146,7 @@
     <section data-project="pink">
         <div class="wrap">
             <div class="showcase">
-                <img class="shot" src="images/guide-shortcuts.png" width="1680" height="900" loading="lazy" alt="Keyboard shortcuts overview">
+                <img class="shot natural" src="images/site-shortcuts.png" width="777" height="634" loading="lazy" alt="Keyboard shortcuts for projects, notes and formatting">
                 <div class="text">
                     <h2>Made for the keyboard.</h2>
                     <p>Fixa works entirely from the keyboard. Arrow keys move between notes, Return starts typing, Escape takes you back.</p>
@@ -139,10 +154,10 @@
                 </div>
             </div>
             <div class="showcase flip">
-                <img class="shot" src="images/guide-sync.png" width="1060" height="312" loading="lazy" alt="Sync with iCloud Drive switch in Settings">
+                <img class="shot natural" src="images/site-sync.png" width="382" height="119" loading="lazy" alt="The Sync card in Settings with the Sync with iCloud Drive switch">
                 <div class="text">
                     <h2>The same notes on every Mac.</h2>
-                    <p>Turn on sync and Fixa keeps your notes in iCloud Drive. Every change on every Mac is recorded, nothing is overwritten blindly, and if two Macs disagree, Fixa asks you.</p>
+                    <p>Change a note on one Mac and it’s waiting on the next. Fixa records every change, never overwrites anything blindly, and when two Macs disagree, it asks you instead of guessing.</p>
                 </div>
             </div>
         </div>
@@ -163,7 +178,7 @@
                     <li><strong>Confirm.</strong> Click Open Anyway again and use Touch ID or your password. Fixa opens and helps with the rest.</li>
                 </ol>
                 <div class="install-download">
-                    <a class="button" href="https://github.com/fixa-notes-app/fixa-notes-app.github.io/releases/latest/download/Fixa.dmg">Download Fixa 0.8</a>
+                    <a class="button" href="https://github.com/fixa-notes-app/fixa-notes-app.github.io/releases/latest/download/Fixa.dmg">Download Fixa 0.9</a>
                     <span>macOS 26 Tahoe or later</span>
                 </div>
             </div>
@@ -207,11 +222,11 @@
 
 <footer>
     <img src="images/icon.png" alt="">
-    Fixa 0.8 · A personal notes app, shared with friends.
+    Fixa 0.9 · A personal notes app, shared with friends.
 </footer>
 
 <script>
-    // Stránka se přebarvuje podle sekce uprostřed obrazovky – jako okno Fixy při přepnutí projektu.
+    // Akcent stránky se mění podle sekce uprostřed obrazovky – jako okno Fixy při přepnutí projektu.
     const sections = [...document.querySelectorAll("section[data-project]")];
     const root = document.documentElement;
     let active = null;

@@ -66,7 +66,7 @@
     border-radius: 24px;
     overflow: hidden;
     background: var(--fx-canvas);
-    box-shadow: 0 40px 90px -40px rgba(30, 28, 80, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 40px 90px -36px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(0, 0, 0, 0.08);
     transition: grid-template-columns 0.35s ease;
 }
 .fx.no-side .fx-window { grid-template-columns: 0 var(--fx-list-w, clamp(230px, 26%, 290px)) minmax(0, 1fr); }
@@ -228,7 +228,10 @@
     background: var(--fx-paper);
     box-shadow: -1px 0 0 var(--fx-sep);
 }
-.fx-scroll { position: absolute; inset: 0 0 30px; overflow-y: auto; overscroll-behavior: contain; }
+.fx-scroll { position: absolute; inset: 0 0 30px; overflow-y: auto; }
+/* Rolování stránky přes demo: dokud se do okna neklikne, se nic uvnitř svisle neposouvá a kolečko jde stránce;
+   pak se posouvá poznámka nebo seznam a na konci zase stránka. */
+.fx:not(.fx-engaged) :is(.fx-scroll, .fx-list-scroll, .fx-tiles) { overflow-y: hidden; }
 .fx-doc {
     min-height: 100%;
     padding: var(--fx-doc-top) 32px 40px;
@@ -568,28 +571,52 @@
     overflow: hidden;
 }
 
-/* Krátká zpráva dole uprostřed okna */
+/* Krátká zpráva dema – na stránce dole uprostřed obrazovky (barvy a písmo stránky, odkaz ke stažení jako tlačítko). */
 .fx-toast {
-    position: absolute;
-    z-index: 6;
+    position: fixed;
+    z-index: 50;
     left: 50%;
-    bottom: 22px;
-    max-width: calc(100% - 32px);
-    padding: 10px 16px;
+    bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: max-content;
+    max-width: min(680px, calc(100vw - 32px));
+    padding: 15px 26px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 17px;
+    line-height: 1.35;
     font-weight: 500;
-    background: color-mix(in srgb, var(--fx-paper) 88%, transparent);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 0 0 0.5px var(--fx-glass-line), 0 10px 30px rgba(0, 0, 0, 0.16);
-    transform: translate(-50%, 12px);
+    color: var(--ink);
+    background: color-mix(in srgb, var(--page) 80%, transparent);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.06);
+    transform: translate(-50%, 24px);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
+.fx-toast.with-link { padding: 10px 10px 10px 26px; }
 .fx-toast.shown { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-.fx-toast a { color: var(--fx-accent); font-weight: 600; }
+.fx-toast a {
+    flex: none;
+    padding: 9px 18px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: #fff;
+    background: var(--accent);
+    box-shadow: 0 8px 20px -10px var(--accent);
+}
+.fx-toast a:hover { text-decoration: none; filter: brightness(1.08); }
+@media (prefers-color-scheme: dark) { .fx-toast a { color: #111; } }
+@media (max-width: 560px) {
+    .fx-toast { font-size: 15px; border-radius: 22px; padding: 13px 18px; }
+    .fx-toast.with-link { padding: 10px 10px 10px 18px; }
+}
 
 /* Pod oknem: zkratky k vyzkoušení (klávesy jako KeyCap v přehledu zkratek) a jak demo ukládá. */
 .fx-keys { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 18px; margin: 20px 0 0; font-size: 13px; color: var(--ink-2); }
@@ -607,7 +634,7 @@
     border-radius: 6px;
     font: 600 12px/1 ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
     color: var(--ink);
-    background: var(--paper);
+    background: var(--surface);
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.22), inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
 }
 .fx-keys > .fx-touch { display: none; }

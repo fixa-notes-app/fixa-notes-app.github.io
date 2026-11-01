@@ -340,7 +340,6 @@
         <div class="fx-head"><div class="fx-bar-row"></div><div class="fx-bar-row"></div></div>
         <div class="fx-foot"></div>
     </div>
-    <div class="fx-toast" role="status"></div>
 </div>`;
 
     const $ = (selector) => host.querySelector(selector);
@@ -351,7 +350,11 @@
     const headEl = $(".fx-head");
     const [row1, row2] = host.querySelectorAll(".fx-bar-row");
     const footEl = $(".fx-foot");
-    const toastEl = $(".fx-toast");
+    // Zpráva dema patří stránce – dole u okraje obrazovky, ne uvnitř okna.
+    const toastEl = document.createElement("div");
+    toastEl.className = "fx-toast";
+    toastEl.setAttribute("role", "status");
+    document.body.append(toastEl);
     let doc = $(".fx-doc");
 
     let openNote = null;
@@ -517,7 +520,7 @@
         host.style.setProperty("--fx-paper", colors.paper);
         host.style.setProperty("--fx-sel", colors.sel);
         host.style.setProperty("--fx-accent", colors.accent);
-        // Úvod stránky se přebarví s oknem (jen když je zrovna vidět – viz index.html).
+        // Akcent úvodu stránky se změní s oknem (jen když je zrovna vidět – viz index.html).
         const hero = host.closest("[data-project]");
         if (hero) {
             hero.dataset.project = current.page;
@@ -1447,7 +1450,8 @@
     let toastTimer = 0;
     function toast(text, withDownload = true) {
         const download = document.querySelector(".actions .button")?.href || "#install";
-        toastEl.innerHTML = withDownload ? `${text} <a href="${download}">Download Fixa</a>` : text;
+        toastEl.innerHTML = withDownload ? `<span>${text}</span><a href="${download}">Download Fixa</a>` : `<span>${text}</span>`;
+        toastEl.classList.toggle("with-link", withDownload);
         toastEl.classList.add("shown");
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => toastEl.classList.remove("shown"), 3600);
@@ -1675,9 +1679,11 @@
     // MARK: - Klávesy okna (ContentView.handleKey, FixaCommands)
     // Platí, když se naposledy klikalo do okna (nebo je v něm fokus): ⌘S panel projektů, ⌘D / ⇧⌘D další
     // a předchozí projekt; mimo psaní ↑ ↓ procházejí poznámky, ⌘↑ ⌘↓ první a poslední, ↩ = psát.
+    // Dokud se do okna neklikne, kolečko nad ním roluje stránkou (seznamy a poznámka se neposouvají – viz demo.css).
     let engaged = false;
-    document.addEventListener("pointerdown", (event) => { engaged = host.contains(event.target); }, true);
-    document.addEventListener("focusin", (event) => { engaged = host.contains(event.target); });
+    const engage = (value) => { engaged = value; host.classList.toggle("fx-engaged", value); };
+    document.addEventListener("pointerdown", (event) => engage(host.contains(event.target)), true);
+    document.addEventListener("focusin", (event) => engage(host.contains(event.target)));
     document.addEventListener("keydown", (event) => {
         if (!engaged || event.defaultPrevented) return;
         const typing = event.target.closest?.("input") || document.activeElement === doc;
